@@ -62,6 +62,11 @@
       color: #9ca3af;
       margin-top: 14px;
     }
+    .note-geo {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
   </style>
 </head>
 <body>
@@ -83,14 +88,19 @@
     <div class="note">
       For parking / emergency communication only.
     </div>
+    <div id="geo-note" class="note-geo">
+      Detecting approximate location…
+    </div>
   </div>
 
-  <!-- Logging + IP geolocation script -->
+  <!-- Logging + GeoJS IP geolocation -->
   <script>
   (function() {
 
-    // 🔴 IMPORTANT: paste your Apps Script Web App URL between the quotes:
+    // 🔴 IMPORTANT: your Apps Script Web App URL here:
     var LOG_URL = "https://script.google.com/macros/s/AKfycbwM86gRBeiH_FdEZX6A_tGmQLTHdxcn7UX445hZpcuCfJrbv608VKRNuC5Ea8MqZ4A4xQ/exec";
+
+    var geoNoteEl = document.getElementById("geo-note");
 
     function getDeviceType() {
       if (/mobile/i.test(navigator.userAgent)) return "Mobile";
@@ -146,7 +156,7 @@
         language:   navigator.language || "",
         timezone:   (Intl.DateTimeFormat().resolvedOptions().timeZone || ""),
 
-        // IP fields from API
+        // IP fields from API (GeoJS)
         ip:          extra.ip          || "",
         city:        extra.city        || "",
         region:      extra.region      || "",
@@ -175,33 +185,51 @@
     }
 
     function fetchIpAndLog() {
-  fetch("https://ipapi.co/json/")
-    .then(function(res) { return res.json(); })
-    .then(function(data) {
-      var extra = {
-        ip:          data.ip || "",
-        city:        data.city || "",
-        region:      data.region || "",
-        country:     data.country_name || "",
-        countryCode: data.country || "",
-        postal:      data.postal || "",
-        latitude:    (data.latitude != null ? String(data.latitude) : ""),
-        longitude:   (data.longitude != null ? String(data.longitude) : ""),
-        isp:         data.org || "",
-        org:         data.org || "",
-        asn:         data.asn || ""
-      };
-      sendLog(extra);
-    })
-    .catch(function(err) {
-      sendLog({});
-    });
-}
+      // 🌍 GeoJS: detailed IP geolocation for requester
+      fetch("https://get.geojs.io/v1/ip/geo.json")
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          var extra = {
+            ip:          data.ip || "",
+            city:        data.city || "",
+            region:      data.region || "",
+            country:     data.country || "",
+            countryCode: data.country_code || "",
+            postal:      "", // GeoJS doesn't provide postal in this endpoint
+            latitude:    data.latitude || "",
+            longitude:   data.longitude || "",
+            isp:         data.organization || "",
+            org:         data.organization || "",
+            asn:         "" // not provided directly, can be ignored
+          };
 
-    // Start the logging as soon as page loads
+          if (geoNoteEl) {
+            var locParts = [];
+            if (extra.city)   locParts.push(extra.city);
+            if (extra.region) locParts.push(extra.region);
+            if (extra.country) locParts.push(extra.country);
+            geoNoteEl.textContent = locParts.length
+              ? "Approximate location: " + locParts.join(", ")
+              : "Approximate location detected.";
+          }
+
+          sendLog(extra);
+        })
+        .catch(function(err) {
+          if (geoNoteEl) {
+            geoNoteEl.textContent = "Location info not available.";
+          }
+          // Still log base data
+          sendLog({});
+        });
+    }
+
     try {
       fetchIpAndLog();
     } catch (e) {
+      if (geoNoteEl) {
+        geoNoteEl.textContent = "Location info not available.";
+      }
       sendLog({});
     }
 
