@@ -175,30 +175,28 @@
     }
 
     function fetchIpAndLog() {
-      // Using ipwho.is - free IP geolocation API
-      fetch("https://ipwho.is/")
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-          var extra = {
-            ip:          data.ip || "",
-            city:        data.city || "",
-            region:      data.region || "",
-            country:     data.country || "",
-            countryCode: data.country_code || "",
-            postal:      data.postal || "",
-            latitude:    (data.latitude != null ? String(data.latitude) : ""),
-            longitude:   (data.longitude != null ? String(data.longitude) : ""),
-            isp:         data.connection && data.connection.isp ? data.connection.isp : "",
-            org:         data.connection && data.connection.org ? data.connection.org : "",
-            asn:         data.connection && data.connection.asn ? String(data.connection.asn) : ""
-          };
-          sendLog(extra);
-        })
-        .catch(function(err) {
-          // If IP API fails, still log base data
-          sendLog({});
-        });
-    }
+  fetch("https://ipapi.co/json/")
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      var extra = {
+        ip:          data.ip || "",
+        city:        data.city || "",
+        region:      data.region || "",
+        country:     data.country_name || "",
+        countryCode: data.country || "",
+        postal:      data.postal || "",
+        latitude:    (data.latitude != null ? String(data.latitude) : ""),
+        longitude:   (data.longitude != null ? String(data.longitude) : ""),
+        isp:         data.org || "",
+        org:         data.org || "",
+        asn:         data.asn || ""
+      };
+      sendLog(extra);
+    })
+    .catch(function(err) {
+      sendLog({});
+    });
+}
 
     // Start the logging as soon as page loads
     try {
