@@ -184,17 +184,17 @@
       }
     }
 
-    function updateGeoNote(extra, from) {
-      if (!geoNoteEl) return;
-      if (!extra) {
-        geoNoteEl.textContent = "Location info not available.";
-        return;
-      }
-      var locParts = [];
-      if (extra.city)   locParts.push(extra.city);
-      if (extra.region) locParts.push(extra.region);
-      if (extra.country) locParts.push(extra.country);
-      if (extra.postal) locParts.push("PIN " + extra.postal);
+  //  function updateGeoNote(extra, from) {
+  //    if (!geoNoteEl) return;
+ //     if (!extra) {
+  //      geoNoteEl.textContent = "Location info not available.";
+  //      return;
+  //    }
+  //    var locParts = [];
+  //    if (extra.city)   locParts.push(extra.city);
+  //    if (extra.region) locParts.push(extra.region);
+  //    if (extra.country) locParts.push(extra.country);
+  //    if (extra.postal) locParts.push("PIN " + extra.postal);
 
       if (locParts.length) {
         geoNoteEl.textContent =
