@@ -5,6 +5,9 @@
   <title>Contact Owner</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
+    * {
+      box-sizing: border-box;
+    }
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       margin: 0;
@@ -82,70 +85,70 @@
     </div>
   </div>
 
-  <!-- Simple logging ping to Google Apps Script -->
+  <!-- Logging script -->
   <script>
-    
-(function() {
+  (function() {
 
-  var LOG_URL = "https://script.google.com/macros/s/AKfycbyOBAzXiilaiRrjWc6UUPfeUApsG6qo60ToFXQZnPHx6HiU3G9qrikKjg_NrXwf-jDKew/exec"; // update this
+    // 🔴 IMPORTANT: paste your Apps Script Web App URL between the quotes:
+    var LOG_URL = "PASTE_YOUR_WEB_APP_URL_HERE";
 
-  function getDeviceType() {
-    if (/mobile/i.test(navigator.userAgent)) return "Mobile";
-    if (/tablet/i.test(navigator.userAgent)) return "Tablet";
-    return "Desktop";
-  }
+    function getDeviceType() {
+      if (/mobile/i.test(navigator.userAgent)) return "Mobile";
+      if (/tablet/i.test(navigator.userAgent)) return "Tablet";
+      return "Desktop";
+    }
 
-  function getOS() {
-    var ua = navigator.userAgent;
-    if (/android/i.test(ua)) return "Android";
-    if (/iphone|ipad|ipod/i.test(ua)) return "iOS";
-    if (/windows/i.test(ua)) return "Windows";
-    if (/macintosh/i.test(ua)) return "MacOS";
-    return "Other";
-  }
+    function getOS() {
+      var ua = navigator.userAgent;
+      if (/android/i.test(ua)) return "Android";
+      if (/iphone|ipad|ipod/i.test(ua)) return "iOS";
+      if (/windows/i.test(ua)) return "Windows";
+      if (/macintosh/i.test(ua)) return "MacOS";
+      return "Other";
+    }
 
-  function getBrowser() {
-    var ua = navigator.userAgent;
-    if (/chrome/i.test(ua)) return "Chrome";
-    if (/safari/i.test(ua) && !/chrome/i.test(ua)) return "Safari";
-    if (/firefox/i.test(ua)) return "Firefox";
-    if (/edg/i.test(ua)) return "Edge";
-    return "Other";
-  }
+    function getBrowser() {
+      var ua = navigator.userAgent;
+      if (/edg/i.test(ua)) return "Edge";
+      if (/chrome/i.test(ua)) return "Chrome";
+      if (/safari/i.test(ua) && !/chrome/i.test(ua)) return "Safari";
+      if (/firefox/i.test(ua)) return "Firefox";
+      return "Other";
+    }
 
-  function extractModel() {
-    var ua = navigator.userAgent;
+    function extractModel() {
+      var ua = navigator.userAgent;
 
-    // Android model patterns
-    var match = ua.match(/;\s?([A-Z0-9\-]+)\s?Build/i);
-    if (match) return match[1];
+      // Android example: "; SM-M325F Build/"
+      var match = ua.match(/;\s?([A-Z0-9\-]+)\s?Build/i);
+      if (match) return match[1];
 
-    // iPhone/iPad pattern
-    var apple = ua.match(/iPhone.*CPU\s+(.*)/);
-    if (apple) return "iPhone";
+      if (/iPhone/i.test(ua)) return "iPhone";
+      if (/iPad/i.test(ua)) return "iPad";
 
-    return "Unknown";
-  }
+      return "Unknown";
+    }
 
-  try {
-    var img = new Image();
-    img.src = LOG_URL
-      + "?url=" + encodeURIComponent(window.location.href)
-      + "&ref=" + encodeURIComponent(document.referrer || "")
-      + "&ua=" + encodeURIComponent(navigator.userAgent || "")
-      + "&deviceType=" + encodeURIComponent(getDeviceType())
-      + "&os=" + encodeURIComponent(getOS())
-      + "&browser=" + encodeURIComponent(getBrowser())
-      + "&model=" + encodeURIComponent(extractModel())
-      + "&screen=" + encodeURIComponent(window.screen.width + "x" + window.screen.height)
-      + "&pixelRatio=" + encodeURIComponent(window.devicePixelRatio || 1)
-      + "&orient=" + encodeURIComponent(screen.orientation ? screen.orientation.type : "unknown")
-      + "&language=" + encodeURIComponent(navigator.language || "")
-      + "&timezone=" + encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone);
-  } catch (e) {}
+    try {
+      var img = new Image();
+      img.src = LOG_URL
+        + "?url="        + encodeURIComponent(window.location.href)
+        + "&ref="        + encodeURIComponent(document.referrer || "")
+        + "&ua="         + encodeURIComponent(navigator.userAgent || "")
+        + "&deviceType=" + encodeURIComponent(getDeviceType())
+        + "&os="         + encodeURIComponent(getOS())
+        + "&browser="    + encodeURIComponent(getBrowser())
+        + "&model="      + encodeURIComponent(extractModel())
+        + "&screen="     + encodeURIComponent(window.screen.width + "x" + window.screen.height)
+        + "&pixelRatio=" + encodeURIComponent(window.devicePixelRatio || 1)
+        + "&orient="     + encodeURIComponent(screen.orientation ? screen.orientation.type : "unknown")
+        + "&language="   + encodeURIComponent(navigator.language || "")
+        + "&timezone="   + encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone);
+    } catch (e) {
+      // fail silently, page still works for user
+    }
 
-})();
-</script>
-  
+  })();
+  </script>
 </body>
 </html>
