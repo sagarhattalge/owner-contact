@@ -89,7 +89,7 @@
   <script>
   (function() {
 
-    // 🔴 IMPORTANT: paste your Apps Script Web App URL between the quotes:
+    // 🔴 IMPORTANT: paste your Apps Script Web App URL between these quotes:
     var LOG_URL = "https://script.google.com/macros/s/AKfycbyOBAzXiilaiRrjWc6UUPfeUApsG6qo60ToFXQZnPHx6HiU3G9qrikKjg_NrXwf-jDKew/exec";
 
     function getDeviceType() {
@@ -145,7 +145,7 @@
         + "&language="   + encodeURIComponent(navigator.language || "")
         + "&timezone="   + encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone);
     } catch (e) {
-      // fail silently, page still works for user
+      // fail silently, page still works
     }
 
   })();
