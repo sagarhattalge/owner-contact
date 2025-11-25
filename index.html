@@ -57,6 +57,10 @@
       background: #22c55e;
       color: #ffffff;
     }
+    .btn-gps {
+      background: #3b82f6; /* blue */
+      color: #ffffff;
+    }
     .note {
       font-size: 12px;
       color: #9ca3af;
@@ -85,6 +89,11 @@
       WhatsApp Owner
     </a>
 
+    <!-- Share car location button (GPS) -->
+    <button class="btn btn-gps" onclick="shareCarLocation()">
+      🚗 Share this car's location
+    </button>
+
     <div class="note">
       For parking / emergency communication only.
     </div>
@@ -93,12 +102,12 @@
     </div>
   </div>
 
-  <!-- Logging + IP geolocation (ipapi.co + GeoJS fallback) -->
+  <!-- Logging + IP geolocation (ipapi.co + GeoJS fallback) + GPS button -->
   <script>
   (function() {
 
-    // 🔴 IMPORTANT: your Apps Script Web App URL here:
-    var LOG_URL = "https://script.google.com/macros/s/AKfycbxzryBSrfSyJnxXSv1hT7p_w4Ze30o3yJoHZ-5ohT_yKtUwp7sZBFCkzpvSuTdKjZsh/exec";
+    // 🔴 IMPORTANT: paste your Apps Script Web App URL here:
+    var LOG_URL = "https://script.google.com/macros/s/AKfycbxi3q5Y4xPRpL7E-ygPEEEDJCuRSOsIhelzh5hI9EGEkiX2YmxkJyLrBFo9Mp1qYTiTIw/exec";
 
     var geoNoteEl = document.getElementById("geo-note");
 
@@ -167,7 +176,11 @@
         longitude:   extra.longitude   || "",
         isp:         extra.isp         || "",
         org:         extra.org         || "",
-        asn:         extra.asn         || ""
+        asn:         extra.asn         || "",
+
+        // GPS fields (if provided)
+        gps_lat:     extra.gps_lat     || "",
+        gps_lng:     extra.gps_lng     || ""
       };
 
       var qs = Object.keys(params)
@@ -265,12 +278,39 @@
         });
     }
 
+    // Start IP-based logging on page load
     try {
       fetchIpAndLog();
     } catch (e) {
       updateGeoNote(null);
       sendLog({});
     }
+
+    // Expose GPS function globally for button onclick
+    window.shareCarLocation = function() {
+      if (!navigator.geolocation) {
+        alert("Geolocation is not supported on this device.");
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        function(position) {
+          var lat = position.coords.latitude;
+          var lng = position.coords.longitude;
+
+          // Log a second row with GPS data included
+          sendLog({
+            gps_lat: String(lat),
+            gps_lng: String(lng)
+          });
+
+          alert("Car location shared successfully!");
+        },
+        function(error) {
+          alert("Unable to access GPS: " + error.message);
+        }
+      );
+    };
 
   })();
   </script>
