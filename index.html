@@ -1,100 +1,279 @@
-function doGet(e) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Contact Owner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f3f4f6;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: #ffffff;
+      padding: 24px 20px 28px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+    }
+    h1 {
+      font-size: 22px;
+      margin: 0 0 8px;
+    }
+    p {
+      font-size: 14px;
+      color: #4b5563;
+      margin: 0 0 20px;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 12px 16px;
+      margin: 8px 0;
+      border-radius: 999px;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      text-decoration: none;
+      text-align: center;
+      font-weight: 600;
+    }
+    .btn-call {
+      background: #16a34a;
+      color: #ffffff;
+    }
+    .btn-whatsapp {
+      background: #22c55e;
+      color: #ffffff;
+    }
+    .note {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 14px;
+    }
+    .note-geo {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Contact Owner</h1>
+    <p>Use one of the options below to reach the vehicle owner.</p>
 
-  const timestamp   = new Date();
+    <!-- Call button -->
+    <a class="btn btn-call" href="tel:+918805219473">
+      Call Owner
+    </a>
 
-  // From browser (existing fields)
-  const url         = e.parameter.url || "";
-  const referrer    = e.parameter.ref || "";
-  const ua          = e.parameter.ua || "";
-  const deviceType  = e.parameter.deviceType || "";
-  const os          = e.parameter.os || "";
-  const browser     = e.parameter.browser || "";
-  const model       = e.parameter.model || "";
-  const screen      = e.parameter.screen || "";
-  const pixelRatio  = e.parameter.pixelRatio || "";
-  const orient      = e.parameter.orient || "";
-  const language    = e.parameter.language || "";
-  const timezone    = e.parameter.timezone || "";
+    <!-- WhatsApp button -->
+    <a class="btn btn-whatsapp"
+       href="https://wa.me/918805219473?text=Hello,%20I%20am%20contacting%20you%20regarding%20your%20car.">
+      WhatsApp Owner
+    </a>
 
-  // Raw ISP / org / ASN from browser (Geo/IP API)
-  const rawIsp      = e.parameter.isp || "";
-  const rawOrg      = e.parameter.org || "";
-  const rawAsn      = e.parameter.asn || "";
+    <div class="note">
+      For parking / emergency communication only.
+    </div>
+    <div id="geo-note" class="note-geo">
+      Detecting approximate location…
+    </div>
+  </div>
 
-  // From IP geolocation API (sent by browser)
-  const ip          = e.parameter.ip || "";
-  const city        = e.parameter.city || "";
-  const region      = e.parameter.region || "";
-  const country     = e.parameter.country || "";
-  const countryCode = e.parameter.countryCode || "";
-  const postal      = e.parameter.postal || "";
-  const latitude    = e.parameter.latitude || "";
-  const longitude   = e.parameter.longitude || "";
+  <!-- Logging + IP geolocation (ipapi.co + GeoJS fallback) -->
+  <script>
+  (function() {
 
-  // ---- Clean ISP / ASN ----
-  var ispClean = rawIsp;
-  var orgClean = rawOrg || rawIsp;  // if org missing, fall back to ISP
-  var asnClean = rawAsn;
+    // 🔴 IMPORTANT: paste your Apps Script Web App URL here:
+    var LOG_URL = "https://script.google.com/macros/s/AKfycbxyxz9IpQjGG81Skr_qcUSSeWfAVIEx7iJLAGdwDuTvoiQkgRA4CYRDq7f2bWghX7K4Xg/exec";
 
-  // Common pattern: "AS45271 Vodafone Idea Ltd"
-  if (!asnClean && rawIsp && rawIsp.toUpperCase().startsWith("AS")) {
-    var firstSpace = rawIsp.indexOf(" ");
-    if (firstSpace > 2) {
-      asnClean = rawIsp.substring(0, firstSpace).trim();         // "AS45271"
-      ispClean = rawIsp.substring(firstSpace + 1).trim();        // "Vodafone Idea Ltd"
-      if (!rawOrg) {
-        orgClean = ispClean;
+    var geoNoteEl = document.getElementById("geo-note");
+
+    function getDeviceType() {
+      if (/mobile/i.test(navigator.userAgent)) return "Mobile";
+      if (/tablet/i.test(navigator.userAgent)) return "Tablet";
+      return "Desktop";
+    }
+
+    function getOS() {
+      var ua = navigator.userAgent;
+      if (/android/i.test(ua)) return "Android";
+      if (/iphone|ipad|ipod/i.test(ua)) return "iOS";
+      if (/windows/i.test(ua)) return "Windows";
+      if (/macintosh/i.test(ua)) return "MacOS";
+      return "Other";
+    }
+
+    function getBrowser() {
+      var ua = navigator.userAgent;
+      if (/edg/i.test(ua)) return "Edge";
+      if (/chrome/i.test(ua)) return "Chrome";
+      if (/safari/i.test(ua) && !/chrome/i.test(ua)) return "Safari";
+      if (/firefox/i.test(ua)) return "Firefox";
+      return "Other";
+    }
+
+    function extractModel() {
+      var ua = navigator.userAgent;
+
+      // Android example: "; SM-M325F Build/"
+      var match = ua.match(/;\s?([A-Z0-9\-]+)\s?Build/i);
+      if (match) return match[1];
+
+      if (/iPhone/i.test(ua)) return "iPhone";
+      if (/iPad/i.test(ua)) return "iPad";
+
+      return "Unknown";
+    }
+
+    function sendLog(extra) {
+      extra = extra || {};
+
+      var params = {
+        url:        window.location.href,
+        ref:        document.referrer || "",
+        ua:         navigator.userAgent || "",
+        deviceType: getDeviceType(),
+        os:         getOS(),
+        browser:    getBrowser(),
+        model:      extractModel(),
+        screen:     window.screen.width + "x" + window.screen.height,
+        pixelRatio: String(window.devicePixelRatio || 1),
+        orient:     (screen.orientation && screen.orientation.type) ? screen.orientation.type : "unknown",
+        language:   navigator.language || "",
+        timezone:   (Intl.DateTimeFormat().resolvedOptions().timeZone || ""),
+
+        // IP/location fields coming from API
+        ip:          extra.ip          || "",
+        city:        extra.city        || "",
+        region:      extra.region      || "",
+        country:     extra.country     || "",
+        countryCode: extra.countryCode || "",
+        postal:      extra.postal      || "",
+        latitude:    extra.latitude    || "",
+        longitude:   extra.longitude   || "",
+        isp:         extra.isp         || "",
+        org:         extra.org         || "",
+        asn:         extra.asn         || ""
+      };
+
+      var qs = Object.keys(params)
+        .map(function(key) {
+          return key + "=" + encodeURIComponent(params[key]);
+        })
+        .join("&");
+
+      try {
+        var img = new Image();
+        img.src = LOG_URL + "?" + qs;
+      } catch (e) {
+        // ignore
       }
     }
-  }
 
-  // If ASN still empty but rawOrg looks like "ASxxxx Something"
-  if (!asnClean && rawOrg && rawOrg.toUpperCase().startsWith("AS")) {
-    var firstSpaceOrg = rawOrg.indexOf(" ");
-    if (firstSpaceOrg > 2) {
-      asnClean = rawOrg.substring(0, firstSpaceOrg).trim();
-      if (!ispClean) {
-        ispClean = rawOrg.substring(firstSpaceOrg + 1).trim();
+    function updateGeoNote(extra, from) {
+      if (!geoNoteEl) return;
+      if (!extra) {
+        geoNoteEl.textContent = "Location info not available.";
+        return;
       }
-      if (!orgClean) {
-        orgClean = ispClean;
+      var locParts = [];
+      if (extra.city)   locParts.push(extra.city);
+      if (extra.region) locParts.push(extra.region);
+      if (extra.country) locParts.push(extra.country);
+      if (extra.postal) locParts.push("PIN " + extra.postal);
+
+      if (locParts.length) {
+        geoNoteEl.textContent =
+          "Approximate location (" + from + "): " + locParts.join(", ");
+      } else {
+        geoNoteEl.textContent = "Approximate location detected (" + from + ").";
       }
     }
-  }
 
-  // Final safety defaults
-  if (!orgClean) orgClean = ispClean;
-  if (!ispClean && orgClean) ispClean = orgClean;
+    function fallbackGeoJS() {
+      // 🌍 GeoJS fallback (no postal/pincode)
+      fetch("https://get.geojs.io/v1/ip/geo.json")
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          var extra = {
+            ip:          data.ip || "",
+            city:        data.city || "",
+            region:      data.region || "",
+            country:     data.country || "",
+            countryCode: data.country_code || "",
+            postal:      "", // GeoJS does not provide postal
+            latitude:    data.latitude || "",
+            longitude:   data.longitude || "",
+            isp:         data.organization || "",
+            org:         data.organization || "",
+            asn:         "" // not provided directly
+          };
 
-  sheet.appendRow([
-    timestamp,      // A: Timestamp
-    url,            // B: URL
-    referrer,       // C: Referrer
-    ua,             // D: UserAgent
-    deviceType,     // E: DeviceType
-    os,             // F: OS
-    browser,        // G: Browser
-    model,          // H: Model
-    screen,         // I: Screen
-    pixelRatio,     // J: PixelRatio
-    orient,         // K: Orientation
-    language,       // L: Language
-    timezone,       // M: Timezone
-    ip,             // N: IP
-    city,           // O: City
-    region,         // P: Region
-    country,        // Q: Country
-    countryCode,    // R: CountryCode
-    postal,         // S: Postal (approx PIN)
-    latitude,       // T: Latitude (IP-based)
-    longitude,      // U: Longitude (IP-based)
-    ispClean,       // V: ISP
-    orgClean,       // W: Org
-    asnClean        // X: ASN
-  ]);
+          updateGeoNote(extra, "GeoJS");
+          sendLog(extra);
+        })
+        .catch(function(err) {
+          updateGeoNote(null);
+          sendLog({});
+        });
+    }
 
-  return ContentService
-    .createTextOutput("OK")
-    .setMimeType(ContentService.MimeType.TEXT);
-}
+    function fetchIpAndLog() {
+      // First try ipapi.co (gives postal/pincode if available)
+      fetch("https://ipapi.co/json/")
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data && !data.error) {
+            var extra = {
+              ip:          data.ip || "",
+              city:        data.city || "",
+              region:      data.region || "",
+              country:     data.country_name || "",
+              countryCode: data.country || "",
+              postal:      data.postal || "",
+              latitude:    (data.latitude != null ? String(data.latitude) : ""),
+              longitude:   (data.longitude != null ? String(data.longitude) : ""),
+              isp:         data.org || "",
+              org:         data.org || "",
+              asn:         data.asn || ""
+            };
+
+            updateGeoNote(extra, "ipapi");
+            sendLog(extra);
+          } else {
+            // If ipapi returns error field, use GeoJS fallback
+            fallbackGeoJS();
+          }
+        })
+        .catch(function(err) {
+          // If ipapi fails (blocked / rate limited), fallback to GeoJS
+          fallbackGeoJS();
+        });
+    }
+
+    // Start IP-based logging on page load
+    try {
+      fetchIpAndLog();
+    } catch (e) {
+      updateGeoNote(null);
+      sendLog({});
+    }
+
+  })();
+  </script>
+</body>
+</html>
