@@ -93,7 +93,7 @@
     </div>
   </div>
 
-  <!-- Logging + GeoJS IP geolocation -->
+  <!-- Logging + IP geolocation (ipapi.co + GeoJS fallback) -->
   <script>
   (function() {
 
@@ -156,7 +156,7 @@
         language:   navigator.language || "",
         timezone:   (Intl.DateTimeFormat().resolvedOptions().timeZone || ""),
 
-        // IP fields from API (GeoJS)
+        // IP/location fields coming from API
         ip:          extra.ip          || "",
         city:        extra.city        || "",
         region:      extra.region      || "",
@@ -184,8 +184,28 @@
       }
     }
 
-    function fetchIpAndLog() {
-      // 🌍 GeoJS: detailed IP geolocation for requester
+    function updateGeoNote(extra, from) {
+      if (!geoNoteEl) return;
+      if (!extra) {
+        geoNoteEl.textContent = "Location info not available.";
+        return;
+      }
+      var locParts = [];
+      if (extra.city)   locParts.push(extra.city);
+      if (extra.region) locParts.push(extra.region);
+      if (extra.country) locParts.push(extra.country);
+      if (extra.postal) locParts.push("PIN " + extra.postal);
+
+      if (locParts.length) {
+        geoNoteEl.textContent =
+          "Approximate location (" + from + "): " + locParts.join(", ");
+      } else {
+        geoNoteEl.textContent = "Approximate location detected (" + from + ").";
+      }
+    }
+
+    function fallbackGeoJS() {
+      // 🌍 GeoJS fallback (no postal/pincode)
       fetch("https://get.geojs.io/v1/ip/geo.json")
         .then(function(res) { return res.json(); })
         .then(function(data) {
@@ -195,41 +215,60 @@
             region:      data.region || "",
             country:     data.country || "",
             countryCode: data.country_code || "",
-            postal:      "", // GeoJS doesn't provide postal in this endpoint
+            postal:      "", // GeoJS does not provide postal
             latitude:    data.latitude || "",
             longitude:   data.longitude || "",
             isp:         data.organization || "",
             org:         data.organization || "",
-            asn:         "" // not provided directly, can be ignored
+            asn:         "" // not provided directly
           };
 
-          if (geoNoteEl) {
-            var locParts = [];
-            if (extra.city)   locParts.push(extra.city);
-            if (extra.region) locParts.push(extra.region);
-            if (extra.country) locParts.push(extra.country);
-            geoNoteEl.textContent = locParts.length
-              ? "Approximate location: " + locParts.join(", ")
-              : "Approximate location detected.";
-          }
-
+          updateGeoNote(extra, "GeoJS");
           sendLog(extra);
         })
         .catch(function(err) {
-          if (geoNoteEl) {
-            geoNoteEl.textContent = "Location info not available.";
-          }
-          // Still log base data
+          updateGeoNote(null);
           sendLog({});
+        });
+    }
+
+    function fetchIpAndLog() {
+      // First try ipapi.co (gives postal/pincode if available)
+      fetch("https://ipapi.co/json/")
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data && !data.error) {
+            var extra = {
+              ip:          data.ip || "",
+              city:        data.city || "",
+              region:      data.region || "",
+              country:     data.country_name || "",
+              countryCode: data.country || "",
+              postal:      data.postal || "",
+              latitude:    (data.latitude != null ? String(data.latitude) : ""),
+              longitude:   (data.longitude != null ? String(data.longitude) : ""),
+              isp:         data.org || "",
+              org:         data.org || "",
+              asn:         data.asn || ""
+            };
+
+            updateGeoNote(extra, "ipapi");
+            sendLog(extra);
+          } else {
+            // If ipapi returns error field, use GeoJS fallback
+            fallbackGeoJS();
+          }
+        })
+        .catch(function(err) {
+          // If ipapi fails (blocked / rate limited), fallback to GeoJS
+          fallbackGeoJS();
         });
     }
 
     try {
       fetchIpAndLog();
     } catch (e) {
-      if (geoNoteEl) {
-        geoNoteEl.textContent = "Location info not available.";
-      }
+      updateGeoNote(null);
       sendLog({});
     }
 
